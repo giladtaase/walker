@@ -38,9 +38,9 @@
 
     // Relay state
     let currentPlayer = 0;       // 0-indexed
-    let solutionPath = [];
-    let stepsPerPlayer = 0;
-    let playerSteps = 0;         // Steps taken by current player
+    let solutionPath = [];       // Optimal path from BFS
+    let switchCheckpoints = [];  // Solution path indices where player switches happen
+    let furthestOnPath = 0;      // Furthest solution index the robot has reached
     let switchPending = false;   // Waiting for switch overlay to dismiss
 
     // Ding sound using Web Audio API
@@ -125,9 +125,15 @@
 
         robot = new Robot(0, 0, cellSize);
         currentPlayer = 0;
-        playerSteps = 0;
+        furthestOnPath = 0;
         startTime = null;
         elapsedSeconds = 0;
+
+        // Calculate switch checkpoints at 20%, 40%, 60%, 80% of solution
+        switchCheckpoints = [];
+        for (let i = 1; i < TOTAL_PLAYERS; i++) {
+            switchCheckpoints.push(Math.floor(solutionPath.length * i / TOTAL_PLAYERS));
+        }
 
         levelDisplay.textContent = `שלב: ${level}`;
         buildPlayerDots();
@@ -170,7 +176,6 @@
     }
 
     function startMoving(direction) {
-        if (switchPending) return;
         stopMoving();
         movingDirection = direction;
         stepRobot(direction);
@@ -183,12 +188,10 @@
 
     function switchToNextPlayer() {
         stopMoving();
-        switchPending = true;
         playDing();
 
         if (currentPlayer < TOTAL_PLAYERS - 1) {
             currentPlayer++;
-            playerSteps = 0;
             updatePlayerUI();
             switchNext.textContent = `שחקן ${currentPlayer + 1} — תורך!`;
             switchOverlay.classList.remove('hidden');
@@ -196,13 +199,12 @@
             // Auto-dismiss after 2 seconds
             setTimeout(() => {
                 switchOverlay.classList.add('hidden');
-                switchPending = false;
             }, 2000);
         }
     }
 
     function stepRobot(direction) {
-        if (gameWon || switchPending) { stopMoving(); return false; }
+        if (gameWon) { stopMoving(); return false; }
 
         let newX = robot.x;
         let newY = robot.y;
@@ -214,7 +216,14 @@
         else return false;
 
         robot.moveTo(newX, newY);
-        playerSteps++;
+
+        // Track progress along the optimal solution path
+        for (let i = furthestOnPath; i < solutionPath.length; i++) {
+            if (solutionPath[i].x === newX && solutionPath[i].y === newY) {
+                furthestOnPath = i;
+                break;
+            }
+        }
 
         // Check win
         if (newX === exitX && newY === exitY) {
@@ -224,8 +233,9 @@
             return true;
         }
 
-        // Check if current player's turn is done (~20% of solution)
-        if (playerSteps >= stepsPerPlayer && currentPlayer < TOTAL_PLAYERS - 1) {
+        // Check if current player reached their checkpoint on the solution path
+        if (currentPlayer < TOTAL_PLAYERS - 1 &&
+            furthestOnPath >= switchCheckpoints[currentPlayer]) {
             switchToNextPlayer();
             return false;
         }
@@ -268,7 +278,6 @@
 
     // Voice commands
     function handleVoiceCommand(direction, transcript) {
-        if (switchPending) return; // Ignore during player switch
         if (direction) {
             const dirNames = {
                 right: 'ימינה ➡️',
