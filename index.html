@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walker - רובוט במבוך</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>🤖 Walker - רובוט במבוך</h1>
+        <div id="status-bar">
+            <span id="level-display">שלב: 1</span>
+            <span id="moves-display">⏱️ 0:00</span>
+            <span id="mic-status" class="mic-off">🎤 מיקרופון כבוי</span>
+        </div>
+        <canvas id="maze-canvas"></canvas>
+        <div id="controls">
+            <button id="mic-btn" class="btn btn-primary">🎤 התחל הקשבה</button>
+            <button id="new-maze-btn" class="btn">🔄 מבוך חדש</button>
+        </div>
+        <div id="command-log">
+            <div id="last-command">אמור פקודה: ימינה, שמאלה, למעלה, למטה, עצור</div>
+        </div>
+        <div id="keyboard-hint">⌨️ אפשר גם עם מקשי החצים (רווח/Esc = עצור)</div>
+        <div id="win-overlay" class="hidden">
+            <div id="win-message">
+                <h2>🎉 כל הכבוד!</h2>
+                <p id="win-stats"></p>
+                <button id="next-level-btn" class="btn btn-primary">שלב הבא ➡️</button>
+            </div>
+        </div>
+    </div>
+    <script src="maze.js?v=2"></script>
+    <script src="robot.js?v=2"></script>
+    <script src="voice.js?v=2"></script>
+    <script src="game.js?v=2"></script>
+</body>
+</html>

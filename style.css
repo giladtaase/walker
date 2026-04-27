@@ -1,0 +1,186 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#app {
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+#status-bar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+#status-bar span {
+    padding: 5px 15px;
+    background: #16213e;
+    border-radius: 20px;
+    border: 1px solid #0f3460;
+}
+
+.mic-on {
+    background: #1b4332 !important;
+    border-color: #40916c !important;
+    animation: pulse 1.5s infinite;
+}
+
+.mic-off {
+    background: #3d1f1f !important;
+    border-color: #6b2d2d !important;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(64, 145, 108, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(64, 145, 108, 0.8); }
+}
+
+#maze-canvas {
+    border: 3px solid #0f3460;
+    border-radius: 8px;
+    background: #16213e;
+    display: block;
+    margin: 0 auto 15px;
+    box-shadow: 0 0 30px rgba(15, 52, 96, 0.5);
+}
+
+#controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.btn {
+    padding: 12px 25px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: #16213e;
+    color: #e0e0e0;
+    border: 1px solid #0f3460;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+    background: #0f3460;
+    color: #00d4ff;
+    border-color: #00d4ff;
+}
+
+.btn-primary:hover {
+    background: #1a4a7a;
+}
+
+#command-log {
+    margin-bottom: 10px;
+}
+
+#last-command {
+    font-size: 1.3rem;
+    padding: 10px 20px;
+    background: #16213e;
+    border-radius: 8px;
+    display: inline-block;
+    border: 1px solid #0f3460;
+    min-width: 300px;
+    transition: all 0.3s;
+}
+
+#last-command.heard {
+    border-color: #00d4ff;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+#keyboard-hint {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Win overlay */
+#win-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.3s;
+}
+
+#win-overlay.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#win-message {
+    background: #16213e;
+    padding: 40px 60px;
+    border-radius: 15px;
+    border: 2px solid #00d4ff;
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+}
+
+#win-message h2 {
+    font-size: 2rem;
+    color: #00d4ff;
+    margin-bottom: 15px;
+}
+
+#win-message p {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Robot animation */
+@keyframes robotBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    h1 { font-size: 1.4rem; }
+    #status-bar { gap: 10px; font-size: 0.9rem; }
+    #status-bar span { padding: 4px 10px; }
+    .btn { padding: 10px 18px; font-size: 1rem; }
+    #last-command { font-size: 1.1rem; min-width: auto; }
+}
