@@ -217,12 +217,12 @@
 
         robot.moveTo(newX, newY);
 
-        // Track progress along the optimal solution path
-        for (let i = furthestOnPath; i < solutionPath.length; i++) {
-            if (solutionPath[i].x === newX && solutionPath[i].y === newY) {
-                furthestOnPath = i;
-                break;
-            }
+        // Track progress: only advance if robot reached the next cell on the solution path
+        const nextOnPath = furthestOnPath + 1;
+        if (nextOnPath < solutionPath.length &&
+            solutionPath[nextOnPath].x === newX &&
+            solutionPath[nextOnPath].y === newY) {
+            furthestOnPath = nextOnPath;
         }
 
         // Check win
