@@ -136,13 +136,15 @@ class Maze {
     }
 
     draw(ctx, cellSize, exitX, exitY) {
-        const wallColor = '#0f3460';
-        const wallWidth = 2;
+        const wallColor = '#4a90d9';
+        const wallWidth = 4;
         const exitColor = '#00d4ff';
 
         ctx.strokeStyle = wallColor;
         ctx.lineWidth = wallWidth;
-        ctx.lineCap = 'round';
+        ctx.lineCap = 'square';
+        ctx.shadowColor = 'rgba(74, 144, 217, 0.4)';
+        ctx.shadowBlur = 4;
 
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.cols; x++) {
@@ -176,6 +178,8 @@ class Maze {
                 }
             }
         }
+
+        ctx.shadowBlur = 0;
 
         // Draw exit marker
         const exPx = exitX * cellSize;
