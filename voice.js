@@ -49,19 +49,18 @@ class VoiceController {
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const result = event.results[i];
 
-            // Check all alternatives (both interim and final)
             for (let j = 0; j < result.length; j++) {
                 const transcript = result[j].transcript.trim();
                 console.log(`[Voice] ${result.isFinal ? 'FINAL' : 'interim'}[${j}]: "${transcript}"`);
 
-                // Parse the LAST command from the transcript
-                // (API sometimes concatenates: "למטה ימינה" → we want "ימינה")
                 const direction = this.parseLastCommand(transcript);
                 if (direction) {
                     if (!result.isFinal) {
                         if (this.lastInterimCommand !== direction) {
                             this.lastInterimCommand = direction;
                             this.onCommand(direction, transcript);
+                            // Force restart to flush buffer and prevent concatenation
+                            this.restartRecognition();
                         }
                     } else {
                         this.lastInterimCommand = null;
@@ -71,7 +70,6 @@ class VoiceController {
                 }
             }
 
-            // Final result with no match — show what was heard
             if (result.isFinal) {
                 this.lastInterimCommand = null;
                 const heard = result[0].transcript.trim();
@@ -108,10 +106,22 @@ class VoiceController {
     }
 
     /**
-     * Match a single word — exact then fuzzy.
+     * Match a single word — strip Hebrew prefixes, then exact, then fuzzy.
      */
     matchWord(word) {
-        return this.exactMatchWord(word) || this.fuzzyMatch(word);
+        // Try raw word first
+        const exact = this.exactMatchWord(word);
+        if (exact) return exact;
+
+        // Strip common Hebrew prefixes: ו (and), ל (to), ב (in), ה (the), כ (like), מ (from)
+        const stripped = word.replace(/^[ולבהכמ]/, '');
+        if (stripped !== word && stripped.length >= 2) {
+            const exactStripped = this.exactMatchWord(stripped);
+            if (exactStripped) return exactStripped;
+        }
+
+        // Fuzzy on stripped version first (if available), then raw
+        return this.fuzzyMatch(stripped || word) || (stripped !== word ? this.fuzzyMatch(word) : null);
     }
 
     exactMatchWord(word) {
@@ -188,9 +198,20 @@ class VoiceController {
     }
 
     handleError(event) {
-        if (event.error === 'no-speech') return; // Ignore silence
+        if (event.error === 'no-speech') return;
         if (event.error === 'aborted') return;
         console.warn('Speech recognition error:', event.error);
+    }
+
+    /**
+     * Restart recognition to flush the buffer.
+     * Prevents the API from concatenating multiple commands into one result.
+     */
+    restartRecognition() {
+        try {
+            this.recognition.stop();
+        } catch (e) {}
+        // onend handler will auto-restart since isListening is still true
     }
 
     handleEnd() {

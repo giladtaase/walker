@@ -94,6 +94,18 @@
         winOverlay.classList.add('hidden');
         switchOverlay.classList.add('hidden');
 
+        // Stop listening and timer
+        if (voice && voice.isListening) {
+            voice.stop();
+        }
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        micBtn.textContent = '🎤 התחל';
+        micStatus.textContent = '🎤 מיקרופון כבוי';
+        micStatus.className = 'mic-off';
+
         const { cols, rows } = getMazeSize();
 
         const maxWidth = Math.min(window.innerWidth - 40, 600);
@@ -285,7 +297,7 @@
     micBtn.addEventListener('click', () => {
         if (voice.isListening) {
             voice.stop();
-            micBtn.textContent = '🎤 התחל הקשבה';
+            micBtn.textContent = '🎤 התחל';
             micStatus.textContent = '🎤 מיקרופון כבוי';
             micStatus.className = 'mic-off';
             // Pause timer (don't reset)
@@ -295,7 +307,7 @@
             }
         } else {
             if (voice.start()) {
-                micBtn.textContent = '⏹️ עצור הקשבה';
+                micBtn.textContent = '⏹️ עצור';
                 micStatus.textContent = '🎤 מאזין...';
                 micStatus.className = 'mic-on';
                 // Start or resume timer
