@@ -114,11 +114,13 @@
         robot = new Robot(0, 0, cellSize);
         currentPlayer = 0;
         playerSteps = 0;
+        startTime = null;
+        elapsedSeconds = 0;
 
         levelDisplay.textContent = `שלב: ${level}`;
         buildPlayerDots();
         updatePlayerUI();
-        startTimer();
+        updateTimerDisplay();
         render();
     }
 
@@ -286,11 +288,27 @@
             micBtn.textContent = '🎤 התחל הקשבה';
             micStatus.textContent = '🎤 מיקרופון כבוי';
             micStatus.className = 'mic-off';
+            // Pause timer (don't reset)
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
         } else {
             if (voice.start()) {
                 micBtn.textContent = '⏹️ עצור הקשבה';
                 micStatus.textContent = '🎤 מאזין...';
                 micStatus.className = 'mic-on';
+                // Start or resume timer
+                if (!startTime) {
+                    startTimer();
+                } else {
+                    // Resume: adjust startTime to account for paused duration
+                    startTime = Date.now() - elapsedSeconds * 1000;
+                    timerInterval = setInterval(() => {
+                        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                        updateTimerDisplay();
+                    }, 1000);
+                }
             }
         }
     });
