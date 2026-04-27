@@ -22,7 +22,7 @@
     const TOTAL_PLAYERS = 5;
     const MOVE_STEP_MS = 300;
     // Target solution length range for 8x8 maze (consistent difficulty)
-    const MIN_SOLUTION = 20;
+    const MIN_SOLUTION = 25;
     const MAX_SOLUTION = 35;
 
     let level = 1;
