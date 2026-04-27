@@ -75,6 +75,66 @@ class Maze {
         return !cell.walls[direction];
     }
 
+    /**
+     * BFS solve from (startX, startY) to (endX, endY).
+     * Returns the path as an array of {x, y} including start and end.
+     */
+    solve(startX, startY, endX, endY) {
+        const visited = Array.from({ length: this.rows }, () => new Array(this.cols).fill(false));
+        const parent = Array.from({ length: this.rows }, () => new Array(this.cols).fill(null));
+        const queue = [{ x: startX, y: startY }];
+        visited[startY][startX] = true;
+
+        const dirs = [
+            { name: 'right', dx: 1, dy: 0 },
+            { name: 'left', dx: -1, dy: 0 },
+            { name: 'top', dx: 0, dy: -1 },
+            { name: 'bottom', dx: 0, dy: 1 },
+        ];
+
+        while (queue.length > 0) {
+            const curr = queue.shift();
+            if (curr.x === endX && curr.y === endY) {
+                // Reconstruct path
+                const path = [];
+                let c = curr;
+                while (c) {
+                    path.unshift({ x: c.x, y: c.y });
+                    c = parent[c.y][c.x];
+                }
+                return path;
+            }
+
+            for (const dir of dirs) {
+                if (this.canMove(curr.x, curr.y, dir.name)) {
+                    const nx = curr.x + dir.dx;
+                    const ny = curr.y + dir.dy;
+                    if (!visited[ny][nx]) {
+                        visited[ny][nx] = true;
+                        parent[ny][nx] = curr;
+                        queue.push({ x: nx, y: ny });
+                    }
+                }
+            }
+        }
+        return []; // No solution (shouldn't happen)
+    }
+
+    /**
+     * Generate maze and ensure solution length is within target range.
+     */
+    generateWithTargetLength(minLen, maxLen) {
+        for (let attempt = 0; attempt < 50; attempt++) {
+            this.generate();
+            const path = this.solve(0, 0, this.cols - 1, this.rows - 1);
+            if (path.length >= minLen && path.length <= maxLen) {
+                return path;
+            }
+        }
+        // Return whatever we got on last attempt
+        return this.solve(0, 0, this.cols - 1, this.rows - 1);
+    }
+
     draw(ctx, cellSize, exitX, exitY) {
         const wallColor = '#0f3460';
         const wallWidth = 2;

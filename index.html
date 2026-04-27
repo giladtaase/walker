@@ -11,9 +11,11 @@
         <h1>🤖 Walker - רובוט במבוך</h1>
         <div id="status-bar">
             <span id="level-display">שלב: 1</span>
+            <span id="player-display">🧑 שחקן 1/5</span>
             <span id="moves-display">⏱️ 0:00</span>
             <span id="mic-status" class="mic-off">🎤 מיקרופון כבוי</span>
         </div>
+        <div id="player-dots"></div>
         <canvas id="maze-canvas"></canvas>
         <div id="controls">
             <button id="mic-btn" class="btn btn-primary">🎤 התחל הקשבה</button>
@@ -23,6 +25,12 @@
             <div id="last-command">אמור פקודה: ימינה, שמאלה, למעלה, למטה, עצור</div>
         </div>
         <div id="keyboard-hint">⌨️ אפשר גם עם מקשי החצים (רווח/Esc = עצור)</div>
+        <div id="switch-overlay" class="hidden">
+            <div id="switch-message">
+                <h2 id="switch-text">🔔 החלפה!</h2>
+                <p id="switch-next"></p>
+            </div>
+        </div>
         <div id="win-overlay" class="hidden">
             <div id="win-message">
                 <h2>🎉 כל הכבוד!</h2>
@@ -31,9 +39,9 @@
             </div>
         </div>
     </div>
-    <script src="maze.js?v=2"></script>
-    <script src="robot.js?v=2"></script>
-    <script src="voice.js?v=2"></script>
-    <script src="game.js?v=2"></script>
+    <script src="maze.js?v=3"></script>
+    <script src="robot.js?v=3"></script>
+    <script src="voice.js?v=3"></script>
+    <script src="game.js?v=3"></script>
 </body>
 </html>

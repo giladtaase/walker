@@ -1,5 +1,6 @@
 /**
  * Main game controller — ties maze, robot, and voice together.
+ * 5-player relay mode: each kid navigates ~20% of the solution path.
  */
 (function () {
     const canvas = document.getElementById('maze-canvas');
@@ -10,34 +11,91 @@
     const lastCommandEl = document.getElementById('last-command');
     const levelDisplay = document.getElementById('level-display');
     const movesDisplay = document.getElementById('moves-display');
+    const playerDisplay = document.getElementById('player-display');
+    const playerDotsEl = document.getElementById('player-dots');
     const winOverlay = document.getElementById('win-overlay');
     const winStats = document.getElementById('win-stats');
     const nextLevelBtn = document.getElementById('next-level-btn');
+    const switchOverlay = document.getElementById('switch-overlay');
+    const switchNext = document.getElementById('switch-next');
+
+    const TOTAL_PLAYERS = 5;
+    const MOVE_STEP_MS = 300;
+    // Target solution length range for 8x8 maze (consistent difficulty)
+    const MIN_SOLUTION = 20;
+    const MAX_SOLUTION = 35;
 
     let level = 1;
     let maze, robot, voice;
     let cellSize = 50;
     let exitX, exitY;
     let gameWon = false;
-    let movingDirection = null;  // Current continuous movement direction
-    let moveInterval = null;     // Interval ID for continuous movement
-    const MOVE_STEP_MS = 300;    // Time between steps while moving
-    let startTime = null;        // Level start time
-    let timerInterval = null;    // Timer update interval
+    let movingDirection = null;
+    let moveInterval = null;
+    let startTime = null;
+    let timerInterval = null;
     let elapsedSeconds = 0;
 
-    function getMazeSize(level) {
+    // Relay state
+    let currentPlayer = 0;       // 0-indexed
+    let solutionPath = [];
+    let stepsPerPlayer = 0;
+    let playerSteps = 0;         // Steps taken by current player
+    let switchPending = false;   // Waiting for switch overlay to dismiss
+
+    // Ding sound using Web Audio API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playDing() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function getMazeSize() {
         return { cols: 8, rows: 8 };
+    }
+
+    function buildPlayerDots() {
+        playerDotsEl.innerHTML = '';
+        for (let i = 0; i < TOTAL_PLAYERS; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'player-dot' + (i === 0 ? ' active' : '');
+            dot.textContent = i + 1;
+            dot.id = `dot-${i}`;
+            playerDotsEl.appendChild(dot);
+        }
+    }
+
+    function updatePlayerUI() {
+        playerDisplay.textContent = `🧑 שחקן ${currentPlayer + 1}/${TOTAL_PLAYERS}`;
+        for (let i = 0; i < TOTAL_PLAYERS; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            dot.className = 'player-dot';
+            if (i < currentPlayer) dot.classList.add('done');
+            if (i === currentPlayer) dot.classList.add('active');
+        }
     }
 
     function initLevel() {
         gameWon = false;
+        switchPending = false;
         stopMoving();
         winOverlay.classList.add('hidden');
+        switchOverlay.classList.add('hidden');
 
-        const { cols, rows } = getMazeSize(level);
+        const { cols, rows } = getMazeSize();
 
-        // Calculate cell size to fit screen
         const maxWidth = Math.min(window.innerWidth - 40, 600);
         const maxHeight = Math.min(window.innerHeight - 300, 600);
         cellSize = Math.floor(Math.min(maxWidth / cols, maxHeight / rows));
@@ -48,11 +106,19 @@
         maze = new Maze(cols, rows);
         exitX = cols - 1;
         exitY = rows - 1;
+
+        // Generate maze with consistent solution length
+        solutionPath = maze.generateWithTargetLength(MIN_SOLUTION, MAX_SOLUTION);
+        stepsPerPlayer = Math.ceil(solutionPath.length / TOTAL_PLAYERS);
+
         robot = new Robot(0, 0, cellSize);
+        currentPlayer = 0;
+        playerSteps = 0;
 
         levelDisplay.textContent = `שלב: ${level}`;
+        buildPlayerDots();
+        updatePlayerUI();
         startTimer();
-
         render();
     }
 
@@ -90,20 +156,39 @@
     }
 
     function startMoving(direction) {
+        if (switchPending) return;
         stopMoving();
         movingDirection = direction;
-        // Take first step immediately
         stepRobot(direction);
-        // Continue stepping
         moveInterval = setInterval(() => {
             if (!stepRobot(direction)) {
-                stopMoving(); // Hit a wall, stop
+                stopMoving();
             }
         }, MOVE_STEP_MS);
     }
 
+    function switchToNextPlayer() {
+        stopMoving();
+        switchPending = true;
+        playDing();
+
+        if (currentPlayer < TOTAL_PLAYERS - 1) {
+            currentPlayer++;
+            playerSteps = 0;
+            updatePlayerUI();
+            switchNext.textContent = `שחקן ${currentPlayer + 1} — תורך!`;
+            switchOverlay.classList.remove('hidden');
+
+            // Auto-dismiss after 2 seconds
+            setTimeout(() => {
+                switchOverlay.classList.add('hidden');
+                switchPending = false;
+            }, 2000);
+        }
+    }
+
     function stepRobot(direction) {
-        if (gameWon) { stopMoving(); return false; }
+        if (gameWon || switchPending) { stopMoving(); return false; }
 
         let newX = robot.x;
         let newY = robot.y;
@@ -112,25 +197,39 @@
         else if (direction === 'left' && maze.canMove(robot.x, robot.y, 'left')) newX--;
         else if (direction === 'up' && maze.canMove(robot.x, robot.y, 'top')) newY--;
         else if (direction === 'down' && maze.canMove(robot.x, robot.y, 'bottom')) newY++;
-        else return false; // Blocked by wall
+        else return false;
 
         robot.moveTo(newX, newY);
+        playerSteps++;
 
         // Check win
         if (newX === exitX && newY === exitY) {
             gameWon = true;
             stopMoving();
             setTimeout(() => showWin(), 400);
+            return true;
         }
+
+        // Check if current player's turn is done (~20% of solution)
+        if (playerSteps >= stepsPerPlayer && currentPlayer < TOTAL_PLAYERS - 1) {
+            switchToNextPlayer();
+            return false;
+        }
+
         return true;
     }
 
     function showWin() {
         stopTimer();
+        // Mark all remaining dots as done
+        for (let i = 0; i < TOTAL_PLAYERS; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            dot.className = 'player-dot done';
+        }
         const mins = Math.floor(elapsedSeconds / 60);
         const secs = elapsedSeconds % 60;
         const timeStr = mins > 0 ? `${mins} דקות ו-${secs} שניות` : `${secs} שניות`;
-        winStats.textContent = `סיימת את שלב ${level} ב-${timeStr}!`;
+        winStats.textContent = `כל הקבוצה סיימה את שלב ${level} ב-${timeStr}!`;
         winOverlay.classList.remove('hidden');
     }
 
@@ -155,6 +254,7 @@
 
     // Voice commands
     function handleVoiceCommand(direction, transcript) {
+        if (switchPending) return; // Ignore during player switch
         if (direction) {
             const dirNames = {
                 right: 'ימינה ➡️',
