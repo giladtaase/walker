@@ -43,14 +43,17 @@
     let furthestOnPath = 0;      // Furthest solution index the robot has reached
     let switchPending = false;   // Waiting for switch overlay to dismiss
 
-    // Ding sound using Web Audio API
+    // Audio — master gain node for mute control
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const masterGainNode = audioCtx.createGain();
+    masterGainNode.connect(audioCtx.destination);
+    const music = new MusicPlayer(audioCtx, masterGainNode);
 
     function playDing() {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(masterGainNode);
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, audioCtx.currentTime);
@@ -94,10 +97,11 @@
         winOverlay.classList.add('hidden');
         switchOverlay.classList.add('hidden');
 
-        // Stop listening and timer
+        // Stop listening, music, and timer
         if (voice && voice.isListening) {
             voice.stop();
         }
+        music.stop();
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
@@ -306,6 +310,7 @@
     micBtn.addEventListener('click', () => {
         if (voice.isListening) {
             voice.stop();
+            music.stop();
             micBtn.textContent = '🎤 התחל';
             micStatus.textContent = '🎤 מיקרופון כבוי';
             micStatus.className = 'mic-off';
@@ -316,6 +321,7 @@
             }
         } else {
             if (voice.start()) {
+                music.start();
                 micBtn.textContent = '⏹️ עצור';
                 micStatus.textContent = '🎤 מאזין...';
                 micStatus.className = 'mic-on';
@@ -371,6 +377,22 @@
     // New maze button
     newMazeBtn.addEventListener('click', () => {
         initLevel();
+    });
+
+    // Mute button — toggles all sound output
+    const muteBtn = document.getElementById('mute-btn');
+    let muted = false;
+
+    muteBtn.addEventListener('click', () => {
+        muted = !muted;
+        if (muted) {
+            audioCtx.destination.channelCount;  // keep context alive
+            masterGainNode.gain.value = 0;
+            muteBtn.textContent = '🔇 מושתק';
+        } else {
+            masterGainNode.gain.value = 1;
+            muteBtn.textContent = '🔊 מוזיקה';
+        }
     });
 
     // Next level button
